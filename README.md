@@ -116,7 +116,7 @@ curl -X POST http://poosdlab.me/LAMPAPI/Login.php \
 
 ## AI Usage
 
-In line with class policy: the application code comes from the COP 4331 LAMP lab and was deployed without AI assistance. An AI assistant (Claude) was used only to help draft this README and to move the hard-coded database credentials into an ignored config file. I reviewed all of it.
+In line with class policy: the application code comes from the COP 4331 LAMP lab and was deployed without AI assistance. An AI assistant (Claude) was used only to help draft this README.
 
 ## License
 
