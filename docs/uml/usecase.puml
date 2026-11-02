@@ -3,7 +3,6 @@
 ' Based on public/*.html, public/js/code.js and api/*.php
 left to right direction
 skinparam packageStyle rectangle
-skinparam actorStyle awesome
 
 actor "User" as user
 actor "MySQL Database" as db <<system>>

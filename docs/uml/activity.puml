@@ -6,34 +6,37 @@ title COLORS - Log in, then add / search colors
 |User|
 start
 :Open index.html;
-:Enter username and password;
-:Click "Do It";
+
+' A failed login leaves the user on index.html to try again (code.js doLogin)
+repeat
+  |User|
+  :Enter username and password;
+  :Click "Do It";
+
+  |Browser (code.js)|
+  :doLogin(): build JSON {login, password};
+  :POST LAMPAPI/Login.php;
+
+  |PHP API|
+  :Login.php: connect with config.php credentials;
+
+  |MySQL|
+  :SELECT ID, firstName, lastName FROM Users\nWHERE Login = ? AND Password = ?;
+
+  |PHP API|
+  if (Row found?) then ([found])
+    :Return {id, firstName, lastName, error: ""};
+  else ([not found])
+    :Return {id: 0, error: "No Records Found"};
+  endif
+
+  |User|
+  backward:Sees "User/Password combination incorrect";
+repeat while (Returned id?) is ([id < 1]) not ([id >= 1])
 
 |Browser (code.js)|
-:doLogin(): build JSON {login, password};
-:POST LAMPAPI/Login.php;
-
-|PHP API|
-:Login.php: connect with config.php credentials;
-
-|MySQL|
-:SELECT ID, firstName, lastName FROM Users\nWHERE Login = ? AND Password = ?;
-
-|PHP API|
-if (Row found?) then ([found])
-  :Return {id, firstName, lastName, error: ""};
-else ([not found])
-  :Return {id: 0, error: "No Records Found"};
-endif
-
-|Browser (code.js)|
-if (Login valid?) then ([id < 1])
-  :Show "User/Password combination incorrect";
-  stop
-else ([id >= 1])
-  :saveCookie() (expires in 20 min);
-  :Redirect to color.html;
-endif
+:saveCookie() (expires in 20 min);
+:Redirect to color.html;
 
 :readCookie() on page load;
 if (userId in cookie?) then ([missing])
@@ -45,6 +48,7 @@ endif
 |User|
 repeat
   :Choose an action;
+  ' Nested if instead of switch: PlantUML's switch crashes across swimlanes
   if (Action?) then ([Add Color])
     :Type color name, click "Add Color";
     |Browser (code.js)|
@@ -53,9 +57,12 @@ repeat
     :AddColor.php;
     |MySQL|
     :INSERT INTO Colors (UserId, Name);
+    |PHP API|
+    :Return {error: ""};
     |Browser (code.js)|
     :Show "Color has been added";
-  elseif () then ([Search Color])
+  else ([Search Color or Log Out])
+  if (Search or log out?) then ([Search Color])
     |User|
     :Type search text, click "Search Color";
     |Browser (code.js)|
@@ -86,8 +93,8 @@ repeat
     :Redirect to index.html;
     stop
   endif
+  endif
   |User|
-repeat while () is ([another action])
-->[done];
+repeat while (Another action?) is ([yes]) not ([done])
 stop
 @enduml

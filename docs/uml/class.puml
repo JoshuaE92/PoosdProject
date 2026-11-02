@@ -34,27 +34,27 @@ package "Front end (public/)" {
     +searchColor() : void
   }
   class "md5.js" as MD5 <<library>> {
-    +md5(text : string) : string
+    +md5(string : string, key : string, raw : boolean) : string
   }
 }
 
 package "API (api/ -> /LAMPAPI)" {
   class "Login.php" as LoginAPI <<endpoint>> {
-    -getRequestInfo() : array
-    -sendResultInfoAsJson(obj : string) : void
-    -returnWithError(err : string) : void
-    -returnWithInfo(firstName : string, lastName : string, id : int) : void
+    +getRequestInfo() : array
+    +sendResultInfoAsJson(obj : string) : void
+    +returnWithError(err : string) : void
+    +returnWithInfo(firstName : string, lastName : string, id : int) : void
   }
   class "AddColor.php" as AddColorAPI <<endpoint>> {
-    -getRequestInfo() : array
-    -sendResultInfoAsJson(obj : string) : void
-    -returnWithError(err : string) : void
+    +getRequestInfo() : array
+    +sendResultInfoAsJson(obj : string) : void
+    +returnWithError(err : string) : void
   }
   class "SearchColors.php" as SearchAPI <<endpoint>> {
-    -getRequestInfo() : array
-    -sendResultInfoAsJson(obj : string) : void
-    -returnWithError(err : string) : void
-    -returnWithInfo(searchResults : string) : void
+    +getRequestInfo() : array
+    +sendResultInfoAsJson(obj : string) : void
+    +returnWithError(err : string) : void
+    +returnWithInfo(searchResults : string) : void
   }
   class "config.php" as Config <<config>> {
     +DB_HOST : string
