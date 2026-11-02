@@ -1,0 +1,112 @@
+@startuml class
+' Class Diagram - COLORS web application
+' The app is not written with classes, so each file/module is modeled as a
+' class with a stereotype, and each DB table as an <<entity>>.
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+package "Front end (public/)" {
+  class "index.html" as IndexPage <<page>> {
+    loginName : input
+    loginPassword : input
+    loginResult : span
+  }
+  class "color.html" as ColorPage <<page>> {
+    searchText : input
+    colorList : p
+    colorText : input
+    colorSearchResult : span
+    colorAddResult : span
+  }
+  class "code.js" as CodeJS <<script>> {
+    +urlBase : string = "http://poosdlab.me/LAMPAPI"
+    +extension : string = "php"
+    +userId : int
+    +firstName : string
+    +lastName : string
+    --
+    +doLogin() : void
+    +saveCookie() : void
+    +readCookie() : void
+    +doLogout() : void
+    +addColor() : void
+    +searchColor() : void
+  }
+  class "md5.js" as MD5 <<library>> {
+    +md5(text : string) : string
+  }
+}
+
+package "API (api/ -> /LAMPAPI)" {
+  class "Login.php" as LoginAPI <<endpoint>> {
+    -getRequestInfo() : array
+    -sendResultInfoAsJson(obj : string) : void
+    -returnWithError(err : string) : void
+    -returnWithInfo(firstName : string, lastName : string, id : int) : void
+  }
+  class "AddColor.php" as AddColorAPI <<endpoint>> {
+    -getRequestInfo() : array
+    -sendResultInfoAsJson(obj : string) : void
+    -returnWithError(err : string) : void
+  }
+  class "SearchColors.php" as SearchAPI <<endpoint>> {
+    -getRequestInfo() : array
+    -sendResultInfoAsJson(obj : string) : void
+    -returnWithError(err : string) : void
+    -returnWithInfo(searchResults : string) : void
+  }
+  class "config.php" as Config <<config>> {
+    +DB_HOST : string
+    +DB_USER : string
+    +DB_PASS : string
+    +DB_NAME : string = "COP4331"
+  }
+}
+
+package "Database (COP4331)" {
+  class Users <<entity>> {
+    {field} ID : INT <<PK>>
+    {field} DateCreated : DATETIME
+    {field} DateLastLoggedIn : DATETIME
+    {field} FirstName : VARCHAR(50)
+    {field} LastName : VARCHAR(50)
+    {field} Login : VARCHAR(50)
+    {field} Password : VARCHAR(50)
+  }
+  class Colors <<entity>> {
+    {field} ID : INT <<PK>>
+    {field} Name : VARCHAR(50)
+    {field} UserID : INT
+  }
+}
+
+IndexPage ..> CodeJS : <<uses>>
+IndexPage ..> MD5 : <<uses>>
+ColorPage ..> CodeJS : <<uses>>
+
+CodeJS ..> LoginAPI : POST JSON\n{login, password}
+CodeJS ..> AddColorAPI : POST JSON\n{color, userId}
+CodeJS ..> SearchAPI : POST JSON\n{search, userId}
+
+LoginAPI ..> Config : <<require>>
+AddColorAPI ..> Config : <<require>>
+SearchAPI ..> Config : <<require>>
+
+LoginAPI ..> Users : SELECT
+AddColorAPI ..> Colors : INSERT
+SearchAPI ..> Colors : SELECT
+
+Users "1" -- "0..*" Colors : owns >
+
+note top of MD5
+  Loaded by index.html, but the md5() call
+  in doLogin() is commented out, so code.js
+  does not actually depend on it.
+end note
+
+note bottom of Colors
+  UserID links to Users.ID, but the schema
+  declares no FOREIGN KEY constraint.
+end note
+@enduml

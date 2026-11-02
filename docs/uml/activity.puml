@@ -1,0 +1,93 @@
+@startuml activity
+' Activity Diagram - COLORS web application
+' Swimlanes follow the real request path: browser JS -> PHP endpoint -> MySQL
+title COLORS - Log in, then add / search colors
+
+|User|
+start
+:Open index.html;
+:Enter username and password;
+:Click "Do It";
+
+|Browser (code.js)|
+:doLogin(): build JSON {login, password};
+:POST LAMPAPI/Login.php;
+
+|PHP API|
+:Login.php: connect with config.php credentials;
+
+|MySQL|
+:SELECT ID, firstName, lastName FROM Users\nWHERE Login = ? AND Password = ?;
+
+|PHP API|
+if (Row found?) then ([found])
+  :Return {id, firstName, lastName, error: ""};
+else ([not found])
+  :Return {id: 0, error: "No Records Found"};
+endif
+
+|Browser (code.js)|
+if (Login valid?) then ([id < 1])
+  :Show "User/Password combination incorrect";
+  stop
+else ([id >= 1])
+  :saveCookie() (expires in 20 min);
+  :Redirect to color.html;
+endif
+
+:readCookie() on page load;
+if (userId in cookie?) then ([missing])
+  :Redirect to index.html;
+  stop
+else ([present])
+endif
+
+|User|
+repeat
+  :Choose an action;
+  if (Action?) then ([Add Color])
+    :Type color name, click "Add Color";
+    |Browser (code.js)|
+    :addColor(): POST {color, userId}\nto AddColor.php;
+    |PHP API|
+    :AddColor.php;
+    |MySQL|
+    :INSERT INTO Colors (UserId, Name);
+    |Browser (code.js)|
+    :Show "Color has been added";
+  elseif () then ([Search Color])
+    |User|
+    :Type search text, click "Search Color";
+    |Browser (code.js)|
+    :searchColor(): POST {search, userId}\nto SearchColors.php;
+    |PHP API|
+    :SearchColors.php;
+    |MySQL|
+    :SELECT Name FROM Colors\nWHERE Name LIKE %text% AND UserID = ?;
+    |PHP API|
+    if (Any matches?) then ([matches])
+      :Return {results: [...], error: ""};
+    else ([no matches])
+      :Return {error: "No Records Found"}\n(no results field);
+    endif
+    |Browser (code.js)|
+    :Show "Color(s) has been retrieved";
+    if (results field present?) then ([present])
+      :Show matching colors in #colorList;
+    else ([missing])
+      :results.length throws TypeError,\nso the list is not updated;
+      note right: Real behavior of searchColor()\nwhen nothing matches
+    endif
+  else ([Log Out])
+    |User|
+    :Click "Log Out";
+    |Browser (code.js)|
+    :doLogout(): expire cookie;
+    :Redirect to index.html;
+    stop
+  endif
+  |User|
+repeat while () is ([another action])
+->[done];
+stop
+@enduml

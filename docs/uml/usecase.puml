@@ -1,0 +1,48 @@
+@startuml usecase
+' Use Case Diagram - COLORS web application (COP 4331 LAMP lab)
+' Based on public/*.html, public/js/code.js and api/*.php
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "User" as user
+actor "MySQL Database" as db <<system>>
+
+rectangle "COLORS Web Application" {
+  usecase UC_Login as "Log In
+--
+extension points:
+invalid credentials"
+  usecase "Show Login Error" as UC_LoginErr
+  usecase "Verify Session\n(read cookie)" as UC_Session
+  usecase "Add Color" as UC_Add
+  usecase "Search Colors" as UC_Search
+  usecase "Log Out" as UC_Logout
+}
+
+user -- UC_Login
+user -- UC_Add
+user -- UC_Search
+user -- UC_Logout
+
+UC_LoginErr .> UC_Login : <<extend>>\n(invalid credentials)
+UC_Add ..> UC_Session : <<include>>
+UC_Search ..> UC_Session : <<include>>
+
+UC_Login -- db
+UC_Add -- db
+UC_Search -- db
+
+note right of UC_Session
+  readCookie() runs when color.html loads.
+  No valid userId -> redirect to index.html
+end note
+
+note bottom of UC_Search
+  Returns only the logged-in user's
+  colors whose name contains the text
+  (SQL: Name LIKE %text% AND UserID = ?)
+end note
+
+note "Not supported by the system:\n- Register account (users inserted into DB by hand)\n- Edit or delete a color" as N1
+@enduml
