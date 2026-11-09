@@ -11,3 +11,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Node lint tooling
+node_modules/

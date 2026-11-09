@@ -1,0 +1,43 @@
+name: Lint
+
+# Run on every push (any branch) and every pull request
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint HTML, CSS, and JavaScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      # Node is only used to run the linters; the app itself is LAMP (PHP + MySQL)
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install lint tools
+        id: install
+        run: npm ci
+
+      # Each linter is its own step so a failure shows exactly which one broke.
+      # The later steps still run after an earlier lint failure, so one run reports every problem.
+      - name: Lint HTML (HTMLHint)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint:html
+
+      - name: Lint CSS (Stylelint)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint:css
+
+      - name: Lint JavaScript (ESLint)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint:js
