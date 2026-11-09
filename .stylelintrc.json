@@ -1,0 +1,11 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "selector-id-pattern": [
+      "^[a-z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$",
+      {
+        "message": "Expected id selector \"%s\" to be camelCase or kebab-case (ids are shared with the HTML and code.js)"
+      }
+    ]
+  }
+}
