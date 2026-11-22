@@ -1,4 +1,4 @@
-name: Lint
+name: CI (lint + tests)
 
 # Run on every push (any branch) and every pull request
 on:
@@ -17,14 +17,14 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v7
 
-      # Node is only used to run the linters; the app itself is LAMP (PHP + MySQL)
+      # Node is only used to run the linters and tests; the app itself is LAMP (PHP + MySQL)
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
 
-      - name: Install lint tools
+      - name: Install tools
         id: install
         run: npm ci
 
@@ -41,3 +41,103 @@ jobs:
       - name: Lint JavaScript (ESLint)
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run lint:js
+
+  unit-tests:
+    name: Front-end unit tests (Jest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install tools
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  integration-tests:
+    name: API integration tests (PHP + MySQL)
+    runs-on: ubuntu-latest
+
+    # A fresh, throwaway MySQL server that exists only for this job
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+        ports:
+          - 3306:3306
+        # Don't start the steps until MySQL actually accepts connections
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root_password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_PASS: ci_root_password
+      API_BASE_URL: http://127.0.0.1:8000/api
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      # PHP runs the app, exactly like Apache would in production
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mysqli
+          tools: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install tools
+        run: npm ci
+
+      - name: Create database schema and test data
+        run: |
+          mysql -h 127.0.0.1 -uroot -p"$DB_PASS" < db/schema.sql
+          mysql -h 127.0.0.1 -uroot -p"$DB_PASS" < tests/fixtures/seed.sql
+
+      # config.php is gitignored (it holds real credentials), so CI writes its own.
+      # 127.0.0.1, not "localhost": with "localhost", mysqli tries a Unix socket
+      # instead of TCP, and the database is in a container reached over TCP.
+      - name: Create api/config.php for CI
+        run: |
+          cat > api/config.php <<EOF
+          <?php
+          define("DB_HOST", "127.0.0.1");
+          define("DB_USER", "root");
+          define("DB_PASS", "$DB_PASS");
+          define("DB_NAME", "COP4331");
+          ?>
+          EOF
+
+      - name: Start PHP built-in web server
+        run: |
+          php -S 127.0.0.1:8000 -t . > php-server.log 2>&1 &
+          # Wait up to ~10s for the server to answer
+          for i in $(seq 1 20); do
+            curl -s -o /dev/null http://127.0.0.1:8000/ && exit 0
+            sleep 0.5
+          done
+          echo "PHP server did not start"; cat php-server.log; exit 1
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Show PHP server log
+        if: ${{ failure() }}
+        run: cat php-server.log

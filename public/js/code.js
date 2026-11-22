@@ -1,4 +1,5 @@
 /* exported doLogin, readCookie, doLogout, addColor, searchColor */
+/* global isValidColorName, formatColorList */
 
 const urlBase = 'http://poosdlab.me/LAMPAPI';
 const extension = 'php';
@@ -115,6 +116,13 @@ function addColor()
 	let newColor = document.getElementById("colorText").value;
 	document.getElementById("colorAddResult").innerHTML = "";
 
+	if( !isValidColorName( newColor ) )
+	{
+		document.getElementById("colorAddResult").innerHTML = "Please enter a color name (1-50 characters)";
+		return;
+	}
+	newColor = newColor.trim();
+
 	let tmp = {color:newColor,userId:userId};
 	let jsonPayload = JSON.stringify( tmp );
 
@@ -145,8 +153,6 @@ function searchColor()
 {
 	let srch = document.getElementById("searchText").value;
 	document.getElementById("colorSearchResult").innerHTML = "";
-	
-	let colorList = "";
 
 	let tmp = {search:srch,userId:userId};
 	let jsonPayload = JSON.stringify( tmp );
@@ -164,17 +170,8 @@ function searchColor()
 			{
 				document.getElementById("colorSearchResult").innerHTML = "Color(s) has been retrieved";
 				let jsonObject = JSON.parse( xhr.responseText );
-				
-				for( let i=0; i<jsonObject.results.length; i++ )
-				{
-					colorList += jsonObject.results[i];
-					if( i < jsonObject.results.length - 1 )
-					{
-						colorList += "<br />\r\n";
-					}
-				}
-				
-				document.getElementsByTagName("p")[0].innerHTML = colorList;
+
+				document.getElementsByTagName("p")[0].innerHTML = formatColorList( jsonObject.results );
 			}
 		};
 		xhr.send(jsonPayload);
